@@ -4,6 +4,8 @@ import cv2
 import numpy as np
 import os
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+import tensorflow as tf
+tf.config.set_visible_devices([], 'GPU')  # Force CPU usage
 from model.facenet_model import compute_similarity  # Import AI model logic
 
 app = Flask(__name__)
