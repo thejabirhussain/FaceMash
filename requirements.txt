@@ -5,3 +5,4 @@ keras_facenet
 tensorflow
 scipy
 gunicorn
+werkzeug
