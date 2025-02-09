@@ -1,0 +1,4 @@
+Flask
+keras_facenet
+opencv-python
+numpy
