@@ -2,6 +2,8 @@ from flask import Flask, render_template, request, jsonify
 import os
 import cv2
 import numpy as np
+import os
+os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 from model.facenet_model import compute_similarity  # Import AI model logic
 
 app = Flask(__name__)
