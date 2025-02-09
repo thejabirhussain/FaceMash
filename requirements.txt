@@ -1,5 +1,7 @@
 Flask
-keras_facenet
-opencv-python
 numpy
+opencv-python
+keras_facenet
+tensorflow
+scipy
 gunicorn
