@@ -1,48 +1,23 @@
 from flask import Flask, request, render_template, jsonify
 import os
-import cv2
-import numpy as np
+import random
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 
-UPLOAD_FOLDER = 'uploads'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+TEMP_FOLDER = "temp_uploads"  # Temporary folder for storing images (not in GitHub)
+os.makedirs(TEMP_FOLDER, exist_ok=True)
 
-last_uploaded_images = {}  # Store last uploaded image paths
+last_uploaded_images = {}  # Store last uploaded image names
 last_score = None  # Store last computed score
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-def preprocess_image(image_path):
-    """Resize image to reduce memory usage."""
-    img = cv2.imread(image_path)
-    if img is None:
-        return None
-    img = cv2.resize(img, (160, 160))  # Resize for faster processing
-    cv2.imwrite(image_path, img)
-    return image_path
-
-def compute_similarity(img1_path, img2_path):
-    """Dummy function to simulate AI model for compatibility check."""
-    try:
-        img1 = cv2.imread(img1_path, cv2.IMREAD_GRAYSCALE)
-        img2 = cv2.imread(img2_path, cv2.IMREAD_GRAYSCALE)
-
-        if img1 is None or img2 is None:
-            return None  # Image processing failed
-
-        hist1 = cv2.calcHist([img1], [0], None, [256], [0, 256])
-        hist2 = cv2.calcHist([img2], [0], None, [256], [0, 256])
-        similarity = cv2.compareHist(hist1, hist2, cv2.HISTCMP_CORREL)
-
-        return round(similarity * 100, 2)  # Convert to percentage
-    except Exception as e:
-        print(f"Error in compute_similarity: {e}")
-        return None
+def generate_random_score():
+    """Generates a random compatibility score between 60-95."""
+    return random.randint(60, 95)
 
 @app.route("/", methods=["GET", "POST"])
 def upload_file():
@@ -62,31 +37,22 @@ def upload_file():
             filename1 = secure_filename(file1.filename)
             filename2 = secure_filename(file2.filename)
 
-            path1 = os.path.join(app.config["UPLOAD_FOLDER"], filename1)
-            path2 = os.path.join(app.config["UPLOAD_FOLDER"], filename2)
+            path1 = os.path.join(TEMP_FOLDER, filename1)
+            path2 = os.path.join(TEMP_FOLDER, filename2)
 
             file1.save(path1)
             file2.save(path2)
 
-            # Resize images
-            path1 = preprocess_image(path1)
-            path2 = preprocess_image(path2)
-
-            if path1 is None or path2 is None:
-                return jsonify({"error": "Image processing failed"}), 500
-
             # Check if the same images were uploaded again
-            if last_uploaded_images.get("file1") == path1 and last_uploaded_images.get("file2") == path2:
+            if last_uploaded_images.get("file1") == filename1 and last_uploaded_images.get("file2") == filename2:
                 return jsonify({"message": "Please change images before re-uploading"}), 400
 
-            # Compute similarity
-            score = compute_similarity(path1, path2)
-            if score is None:
-                return jsonify({"error": "Failed to compute compatibility"}), 500
+            # Generate a random score
+            score = generate_random_score()
 
             # Store last uploaded images and score
-            last_uploaded_images["file1"] = path1
-            last_uploaded_images["file2"] = path2
+            last_uploaded_images["file1"] = filename1
+            last_uploaded_images["file2"] = filename2
             last_score = score
 
             return jsonify({"compatibility_score": score})
