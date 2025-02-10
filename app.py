@@ -2,7 +2,12 @@ from flask import Flask, request, jsonify
 import cv2
 import numpy as np
 from werkzeug.utils import secure_filename
-from facenet_model import compute_similarity  # Import FaceNet similarity function
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
+from facenet_model import compute_similarity
+
 
 app = Flask(__name__)
 
