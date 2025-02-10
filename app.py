@@ -1,63 +1,152 @@
-from flask import Flask, request, render_template, jsonify
-import os
-import random
-from werkzeug.utils import secure_filename
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FaceMash AI - Love Compatibility</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            text-align: center;
+            background: linear-gradient(135deg, #ff758c, #ff7eb3);
+            color: white;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 500px;
+            background: white;
+            color: #333;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0px 0px 15px rgba(0, 0, 0, 0.2);
+            margin: auto;
+            animation: fadeIn 1s ease-in-out;
+        }
+        h1 {
+            color: #ff3366;
+        }
+        input {
+            display: block;
+            margin: 10px auto;
+            padding: 8px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+        button {
+            background: #ff3366;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            font-size: 16px;
+            border-radius: 5px;
+            transition: transform 0.2s ease-in-out;
+        }
+        button:hover {
+            background: #cc2855;
+            transform: scale(1.05);
+        }
+        #result {
+            margin-top: 20px;
+            font-size: 18px;
+            font-weight: bold;
+            transition: opacity 0.5s ease-in-out;
+        }
+        .preview {
+            margin-top: 10px;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+        .preview img {
+            width: 100px;
+            height: 100px;
+            object-fit: cover;
+            border-radius: 10px;
+            border: 2px solid #ff3366;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+    </style>
+</head>
+<body>
 
-app = Flask(__name__)
+    <div class="container">
+        <h1>FaceMash AI ❤️</h1>
+        <p>Upload photos of a couple & see their AI-calculated love compatibility! 💕</p>
+        <form id="uploadForm">
+            <label>Upload Partner 1 Photo:</label>
+            <input type="file" id="image1" required>
+            <label>Upload Partner 2 Photo:</label>
+            <input type="file" id="image2" required>
+            <div class="preview" id="previewContainer"></div>
+            <button type="submit">Check Compatibility 🔍</button>
+        </form>
+        <div id="result">Waiting for input...</div>
+         <p>Made by Batzz ❤️</p>
+    </div>
+        
+    <script>
+        function previewImage(input, previewId) {
+            const file = input.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    let imgElement = document.getElementById(previewId);
+                    if (!imgElement) {
+                        imgElement = document.createElement("img");
+                        imgElement.id = previewId;
+                        document.getElementById("previewContainer").appendChild(imgElement);
+                    }
+                    imgElement.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        }
 
-ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
-TEMP_FOLDER = "temp_uploads"  # Temporary folder for storing images (not in GitHub)
-os.makedirs(TEMP_FOLDER, exist_ok=True)
+        document.getElementById("image1").addEventListener("change", function () {
+            previewImage(this, "preview1");
+        });
 
-last_uploaded_images = {}  # Store last uploaded image names
-last_score = None  # Store last computed score
+        document.getElementById("image2").addEventListener("change", function () {
+            previewImage(this, "preview2");
+        });
 
-def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+        document.getElementById("uploadForm").addEventListener("submit", function(event) {
+            event.preventDefault();
 
-def generate_random_score():
-    """Generates a random compatibility score between 60-95."""
-    return random.randint(60, 95)
+            let formData = new FormData();
+            formData.append("file1", document.getElementById("image1").files[0]);
+            formData.append("file2", document.getElementById("image2").files[0]);
 
-@app.route("/", methods=["GET", "POST"])
-def upload_file():
-    global last_uploaded_images, last_score  # Access previous uploads
+            let resultDiv = document.getElementById("result");
+            resultDiv.style.opacity = "0.5";
+            resultDiv.innerHTML = "Analyzing... 🔍";
 
-    if request.method == "POST":
-        if "file1" not in request.files or "file2" not in request.files:
-            return jsonify({"error": "Missing files"}), 400
+            fetch("/", {
+                method: "POST",
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    resultDiv.innerHTML = `❌ ${data.error}`;
+                } else if (data.message) {
+                    resultDiv.innerHTML = `⚠️ ${data.message}`;
+                } else {
+                    resultDiv.innerHTML = `💖 Compatibility Score: <b>${data.compatibility_score}%</b>`;
+                }
+                resultDiv.style.opacity = "1";
+            })
+            .catch(error => {
+                console.error("Error:", error);
+                resultDiv.innerHTML = "❌ Error processing images!";
+            });
+        });
+    </script>
 
-        file1 = request.files["file1"]
-        file2 = request.files["file2"]
-
-        if file1.filename == "" or file2.filename == "":
-            return jsonify({"error": "No selected file"}), 400
-
-        if file1 and allowed_file(file1.filename) and file2 and allowed_file(file2.filename):
-            filename1 = secure_filename(file1.filename)
-            filename2 = secure_filename(file2.filename)
-
-            path1 = os.path.join(TEMP_FOLDER, filename1)
-            path2 = os.path.join(TEMP_FOLDER, filename2)
-
-            file1.save(path1)
-            file2.save(path2)
-
-            # Check if the same images were uploaded again
-            if last_uploaded_images.get("file1") == filename1 and last_uploaded_images.get("file2") == filename2:
-                return jsonify({"message": "Please change images before re-uploading"}), 400
-
-            # Generate a random score
-            score = generate_random_score()
-
-            # Store last uploaded images and score
-            last_uploaded_images["file1"] = filename1
-            last_uploaded_images["file2"] = filename2
-            last_score = score
-
-            return jsonify({"compatibility_score": score})
-
-    return render_template("index.html")
-
-if __name__ == "__main__":
-    app.run(debug=True, threaded=True)
+</body>
+</html>
