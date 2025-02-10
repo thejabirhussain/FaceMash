@@ -11,6 +11,9 @@ ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
+last_uploaded_images = {}  # Store last uploaded image paths
+last_score = None  # Store last computed score
+
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
@@ -43,6 +46,8 @@ def compute_similarity(img1_path, img2_path):
 
 @app.route("/", methods=["GET", "POST"])
 def upload_file():
+    global last_uploaded_images, last_score  # Access previous uploads
+
     if request.method == "POST":
         if "file1" not in request.files or "file2" not in request.files:
             return jsonify({"error": "Missing files"}), 400
@@ -70,9 +75,19 @@ def upload_file():
             if path1 is None or path2 is None:
                 return jsonify({"error": "Image processing failed"}), 500
 
+            # Check if the same images were uploaded again
+            if last_uploaded_images.get("file1") == path1 and last_uploaded_images.get("file2") == path2:
+                return jsonify({"message": "Please change images before re-uploading"}), 400
+
+            # Compute similarity
             score = compute_similarity(path1, path2)
             if score is None:
                 return jsonify({"error": "Failed to compute compatibility"}), 500
+
+            # Store last uploaded images and score
+            last_uploaded_images["file1"] = path1
+            last_uploaded_images["file2"] = path2
+            last_score = score
 
             return jsonify({"compatibility_score": score})
 
