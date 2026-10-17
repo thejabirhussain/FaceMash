@@ -116,7 +116,7 @@ Pull requests are welcome! For major changes, please open an issue first to disc
 
 ## 📄 License
 
-This project is open source under the [MIT License](LICENSE).
+Copyright (c) 2025-2026 Mohammed Jabir Hussain Shaik. All rights reserved. See [LICENSE](LICENSE).
 
 ---
 
